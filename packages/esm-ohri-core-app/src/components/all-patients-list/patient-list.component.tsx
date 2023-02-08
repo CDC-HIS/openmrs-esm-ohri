@@ -4,6 +4,7 @@ import { Add } from '@carbon/react/icons';
 import { useTranslation } from 'react-i18next';
 import { age, navigate } from '@openmrs/esm-framework';
 import { DataTableSkeleton, Pagination, OverflowMenu, Button } from '@carbon/react';
+import { Launch } from '@carbon/icons-react';
 import { capitalize } from 'lodash-es';
 import moment from 'moment';
 import {
@@ -36,6 +37,7 @@ const PatientList: React.FC<PatientListProps> = () => {
     { key: 'gender', header: t('gender', 'Gender') },
     { key: 'age', header: t('age', 'Age') },
     { key: 'last_visit', header: t('lastVisit', 'Last Visit') },
+    { key: 'link', header: t('link', 'Bio') },
     { key: 'actions', header: '' },
   ];
 
@@ -60,16 +62,17 @@ const PatientList: React.FC<PatientListProps> = () => {
 
       rows.push({
         id: patient.resource.id,
-        name: (
-          <Router>
-            <Link style={{ textDecoration: 'inherit' }} to={getPatientURL(patient.resource.id)}>
-              {`${patient.resource.name[0].given.join(' ')} ${patient.resource.name[0].family}`}
-            </Link>
-          </Router>
-        ),
+        name: `${patient.resource.name[0].given.join(' ')} ${patient.resource.name[0].family}`,
         gender: capitalize(patient.resource.gender),
         age: age(patient.resource.birthDate),
         last_visit: lastVisit ? moment(lastVisit).format('DD-MMM-YYYY') : '__',
+        link: (
+          <Router>
+            <Link style={{ textDecoration: 'inherit' }} to={getPatientURL(patient.resource.id)}>
+              <Launch />
+            </Link>
+          </Router>
+        ),
         actions: patientActions,
       });
     }
