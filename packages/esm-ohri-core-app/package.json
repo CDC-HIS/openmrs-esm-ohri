@@ -1,5 +1,5 @@
 {
-  "name": "@ohri/openmrs-esm-ohri-core-app",
+  "name": "@icap-ethiopia/openmrs-esm-ohri-core-app",
   "version": "1.0.6",
   "description": "A custom microfrontend for OpenMRS HIV Reference Implementation (OHRI)",
   "browser": "dist/ohri-core-app.js",
