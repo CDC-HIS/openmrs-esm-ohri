@@ -63,7 +63,6 @@
                 {
                   "intent":"*",
                   "required":"true",
-                  "unspecified":"true",
                   "hide":{
                     "hideWhenExpression":"false"
                   }
@@ -82,17 +81,44 @@
               "id": "ptrackerid",
               "questionOptions": {
                 "concept": "6c45421e-2566-47cb-bbb3-07586fffbfe2",
-                "rendering": "text"
-              }
-            }
-          ],
-          "behaviours":[
+                "rendering": "text",
+                "calculate": {
+                  "calculateExpression": "antenatal_visit_type == '160530AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' ? useFieldValue('latest_ptracker_number') : ''"
+                }
+              },
+              "readonlyExpression": "antenatal_visit_type == '160530AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' && useFieldValue('ptrackerid') == useFieldValue('latest_ptracker_number')",
+              "behaviours":[
+                {
+                  "intent":"*",
+                  "required":"true",
+                  "unspecified":"false",
+                  "hide":{
+                    "hideWhenExpression":"false"
+                  },
+                  "validators":[
+                    {
+                       "type": "js_expression",
+                       "failsWhenExpression": "!/^[0-9]{5}[A-S]{1}[0-9]{6,8}$$/.test(myValue)",
+                       "message": "Invalid Ptracker number"
+                     }
+
+                   ]
+                }
+              ]
+            },
             {
-              "intent":"*",
-              "required":"true",
-              "unspecified":"false",
+              "label": "Latest Ptracker number",
+              "type": "obs",
+              "id": "latest_ptracker_number",
+              "questionOptions": {
+                "concept": "",
+                "rendering": "fixed-value",
+                "calculate": {
+                   "calculateExpression": "resolve(api.getLatestObs(patient.id, '6c45421e-2566-47cb-bbb3-07586fffbfe2', '2549af50-75c8-4aeb-87ca-4bb2cef6c69a')).valueString"
+                }
+              },
               "hide":{
-                "hideWhenExpression":"antenatal_visit_type !== '164180AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+                "hideWhenExpression":"true"
               }
             }
           ]
@@ -209,7 +235,12 @@
               }
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "label": "HTS and ART",
+      "sections": [
         {
           "label": "HIV Testing and ART Initiation",
           "isExpanded": "true",
@@ -245,9 +276,47 @@
                 {
                   "intent":"*",
                   "required":"true",
-                  "unspecified":"true",
                   "hide":{
-                    "hideWhenExpression":"false"
+                    "hideWhenExpression":"antenatal_visit_type !== '164180AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' && antenatal_visit_type !== '54b96458-6585-4c4c-a5b1-b3ca7f1be351' && antenatal_visit_type !== '54b96458-6585-4c4c-a5b1-b3ca7f1be351' && latest_hiv_test_result === '138571AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'|| antenatal_visit_type !== '164180AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' && antenatal_visit_type !== '54b96458-6585-4c4c-a5b1-b3ca7f1be351' && antenatal_visit_type !== '54b96458-6585-4c4c-a5b1-b3ca7f1be351' && latest_hiv_test_status === '8b8951a8-e8d6-40ca-ad70-89e8f8f71fa8'"
+                  }
+                }
+              ]
+            },
+            {
+              "label": "Latest HIV Test Status",
+              "type": "obs",
+              "id": "latest_hiv_test_status",
+              "questionOptions": {
+                "concept": "164401AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "fixed-value",
+                "calculate": {
+                   "calculateExpression": "resolve(api.getLatestObs(patient.id, '164401AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', '2549af50-75c8-4aeb-87ca-4bb2cef6c69a'))?.valueCodeableConcept?.coding[0]?.code"
+                 }, 
+                 "answers": [
+                  {
+                    "concept": "6f041992-f0fd-4ec7-b7b6-c06b0f60bf3f",
+                    "label": "Tested for HIV during this visit"
+                  },
+                  {
+                    "concept": "8b8951a8-e8d6-40ca-ad70-89e8f8f71fa8",
+                    "label": "Previously known positive"
+                  },
+                  {
+                    "concept": "d18fa331-f158-47d0-b344-cf147c7125a4",
+                    "label": "Not tested for HIV during this visit"
+                  },
+                  {
+                    "concept": "54b96458-6585-4c4c-a5b1-b3ca7f1be351",
+                    "label": "Missing"
+                  }
+                ]
+              },
+              "behaviours":[
+                {
+                  "intent":"*",
+                  "required":"true",
+                  "hide":{
+                    "hideWhenExpression":"true"
                   }
                 }
               ]
@@ -282,7 +351,6 @@
                 {
                   "intent":"*",
                   "required":"true",
-                  "unspecified":"true",
                   "hide":{
                     "hideWhenExpression":"hiv_test !== '6f041992-f0fd-4ec7-b7b6-c06b0f60bf3f'"
                   }
@@ -290,111 +358,27 @@
               ]
             },
             {
-              "label": "Partner HIV test done?",
+              "label": "Latest HIV test result ",
               "type": "obs",
-              "id": "partner_hiv_test_done",
+              "id": "latest_hiv_test_result",
               "questionOptions": {
-                "concept": "161557AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                "rendering": "radio",
-                "answers": [
-                  {
-                    "concept": "8b8951a8-e8d6-40ca-ad70-89e8f8f71fa8",
-                    "label": "Previously known positive"
-                  },
-                  {
-                    "concept": "1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                    "label": "Yes"
-                  },
-                  {
-                    "concept": "1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                    "label": "No"
-                  },
-                  {
-                    "concept": "54b96458-6585-4c4c-a5b1-b3ca7f1be351",
-                    "label": "Missing"
-                  }
-                ]
-              },
-              "behaviours":[
-                {
-                  "intent":"*",
-                  "required":"true",
-                  "unspecified":"true",
-                  "hide":{
-                    "hideWhenExpression":"false"
-                  }
-                }
-              ]
-            },
-            {
-              "label": "Partner's HIV test result ",
-              "type": "obs",
-              "id": "partner_hiv_test_result",
-              "questionOptions": {
-                "concept": "1436AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                "rendering": "radio",
+                "concept": "159427AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "fixed-field",
+                "calculate":{
+                  "calculateExpression":"resolve(api.getLatestObs(patient.id, '159427AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', '2549af50-75c8-4aeb-87ca-4bb2cef6c69a'))?.valueCodeableConcept?.coding[0]?.code"
+                },
                 "answers": [
                   {
                     "concept": "138571AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                    "label": "Positive",
-                    "conceptMappings":[
-                      {
-                        "type":"CIEL",
-                        "value":"138571"
-                      },
-                      {
-                        "type":"AMPATH",
-                        "value":"1169"
-                      },
-                      {
-                        "type":"SNOMED CT",
-                        "value":"165816005"
-                      }
-                    ]
+                    "label": "Positive"
                   },
                   {
                     "concept": "664AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                    "label": "Negative",
-                    "conceptMappings":[
-                      {
-                        "type":"CIEL",
-                        "value":"664"
-                      },
-                      {
-                        "type":"AMPATH",
-                        "value":"664"
-                      },
-                      {
-                        "type":"SNOMED CT",
-                        "value":"260385009"
-                      },
-                      {
-                        "type":"PIH",
-                        "value":"664"
-                      }
-                    ]
+                    "label": "Negative"
                   },
                   {
                     "concept": "1067AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                    "label": "Unknown",
-                    "conceptMappings":[
-                      {
-                        "type":"CIEL",
-                        "value":"1067"
-                      },
-                      {
-                        "type":"AMPATH",
-                        "value":"1067"
-                      },
-                      {
-                        "type":"SNOMED CT",
-                        "value":"261665006"
-                      },
-                      {
-                        "type":"PIH",
-                        "value":"1067"
-                      }
-                    ]
+                    "label": "Unknown"
                   },
                   {
                     "concept": "54b96458-6585-4c4c-a5b1-b3ca7f1be351",
@@ -406,38 +390,9 @@
                 {
                   "intent":"*",
                   "required":"true",
-                  "unspecified":"true",
                   "hide":{
-                    "hideWhenExpression":"partner_hiv_test_done !== '1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+                    "hideWhenExpression":"true"
                   }
-                }
-              ]
-            },
-            {
-              "label": "Date Partner's HIV test done",
-              "type": "obs",
-              "id": "partner_hiv_test_date",
-              "questionOptions": {
-                "concept": "90bd8fec-3ff1-11e9-b210-d663bd873d93",
-                "rendering": "date"
-              },
-              "behaviours":[
-                {
-                  "intent":"*",
-                  "unspecified":"true",
-                  "hide":{
-                    "hideWhenExpression":"partner_hiv_test_done !== '1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
-                  },
-                  "validators": [
-                    {
-                      "type":"date",
-                      "allowFutureDates":"false"
-                    },
-                    {
-                      "type":"js_expression",
-                      "failsWhenExpression":"isDateBefore(myValue, '1980-01-01') || myValue >= today()"
-                    }
-                  ]
                 }
               ]
             },
@@ -527,7 +482,6 @@
                 {
                   "intent":"*",
                   "required":"true",
-                  "unspecified":"true",
                   "hide":{
                     "hideWhenExpression":"hiv_test_result !== '138571AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' && hiv_test !== '8b8951a8-e8d6-40ca-ad70-89e8f8f71fa8'"
                   }
@@ -628,7 +582,6 @@
                 {
                   "intent":"*",
                   "required":"true",
-                  "unspecified":"true",
                   "hide":{
                     "hideWhenExpression":"art_initiation !== '160119AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' && art_initiation !== '160120AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
                   }
@@ -673,6 +626,10 @@
                 "rendering": "radio",
                 "answers": [
                   {
+                    "concept": "159971AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Results Pending"
+                  },
+                  {
                     "concept": "1301AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                     "label": "Target Detected"
                   },
@@ -685,10 +642,6 @@
                     "label": "Sample Rejected"
                   },
                   {
-                    "concept": "159971AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                    "label": "Results Pending"
-                  },
-                  {
                     "concept": "54b96458-6585-4c4c-a5b1-b3ca7f1be351",
                     "label": "Missing"
                   }
@@ -698,7 +651,6 @@
                 {
                   "intent":"*",
                   "required":"true",
-                  "unspecified":"true",
                   "hide":{
                     "hideWhenExpression":"recent_viral_load !== '1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
                   }
@@ -723,9 +675,203 @@
                   }
                 }
               ]
+            },
+            {
+              "label": "Partner HIV test done?",
+              "type": "obs",
+              "id": "partner_hiv_test_done",
+              "questionOptions": {
+                "concept": "161557AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "radio",
+                "answers": [
+                  {
+                    "concept": "8b8951a8-e8d6-40ca-ad70-89e8f8f71fa8",
+                    "label": "Previously known positive"
+                  },
+                  {
+                    "concept": "1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Yes"
+                  },
+                  {
+                    "concept": "1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "No"
+                  },
+                  {
+                    "concept": "54b96458-6585-4c4c-a5b1-b3ca7f1be351",
+                    "label": "Missing"
+                  }
+                ]
+              },
+              "behaviours":[
+                {
+                  "intent":"*",
+                  "required":"true",
+                  "hide":{
+                    "hideWhenExpression":"antenatal_visit_type !== '164180AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' && antenatal_visit_type !== '54b96458-6585-4c4c-a5b1-b3ca7f1be351' && antenatal_visit_type !== '54b96458-6585-4c4c-a5b1-b3ca7f1be351' && latest_partner_hiv_test_status === '8b8951a8-e8d6-40ca-ad70-89e8f8f71fa8'"
+                  }
+                }
+              ]
+            },
+            {
+              "label": "Latest Partner HIV Test Status",
+              "type": "obs",
+              "id": "latest_partner_hiv_test_status",
+              "questionOptions": {
+                "concept": "161557AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "fixed-value",
+                "calculate": {
+                   "calculateExpression": "resolve(api.getLatestObs(patient.id, '161557AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', '2549af50-75c8-4aeb-87ca-4bb2cef6c69a'))?.valueCodeableConcept?.coding[0]?.code"
+                 }, 
+                 "answers": [
+                  {
+                    "concept": "8b8951a8-e8d6-40ca-ad70-89e8f8f71fa8",
+                    "label": "Previously known positive"
+                  },
+                  {
+                    "concept": "1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Yes"
+                  },
+                  {
+                    "concept": "1066AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "No"
+                  },
+                  {
+                    "concept": "54b96458-6585-4c4c-a5b1-b3ca7f1be351",
+                    "label": "Missing"
+                  }
+                ]
+              },
+              "behaviours":[
+                {
+                  "intent":"*",
+                  "required":"true",
+                  "hide":{
+                    "hideWhenExpression":"true"
+                  }
+                }
+              ]
+            },
+            {
+              "label": "Partner's HIV test result ",
+              "type": "obs",
+              "id": "partner_hiv_test_result",
+              "questionOptions": {
+                "concept": "1436AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                "rendering": "radio",
+                "answers": [
+                  {
+                    "concept": "138571AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Positive",
+                    "conceptMappings":[
+                      {
+                        "type":"CIEL",
+                        "value":"138571"
+                      },
+                      {
+                        "type":"AMPATH",
+                        "value":"1169"
+                      },
+                      {
+                        "type":"SNOMED CT",
+                        "value":"165816005"
+                      }
+                    ]
+                  },
+                  {
+                    "concept": "664AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Negative",
+                    "conceptMappings":[
+                      {
+                        "type":"CIEL",
+                        "value":"664"
+                      },
+                      {
+                        "type":"AMPATH",
+                        "value":"664"
+                      },
+                      {
+                        "type":"SNOMED CT",
+                        "value":"260385009"
+                      },
+                      {
+                        "type":"PIH",
+                        "value":"664"
+                      }
+                    ]
+                  },
+                  {
+                    "concept": "1067AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    "label": "Unknown",
+                    "conceptMappings":[
+                      {
+                        "type":"CIEL",
+                        "value":"1067"
+                      },
+                      {
+                        "type":"AMPATH",
+                        "value":"1067"
+                      },
+                      {
+                        "type":"SNOMED CT",
+                        "value":"261665006"
+                      },
+                      {
+                        "type":"PIH",
+                        "value":"1067"
+                      }
+                    ]
+                  },
+                  {
+                    "concept": "54b96458-6585-4c4c-a5b1-b3ca7f1be351",
+                    "label": "Missing"
+                  }
+                ]
+              },
+              "behaviours":[
+                {
+                  "intent":"*",
+                  "required":"true",
+                  "hide":{
+                    "hideWhenExpression":"partner_hiv_test_done !== '1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+                  }
+                }
+              ]
+            },
+            {
+              "label": "Date Partner's HIV test done",
+              "type": "obs",
+              "id": "partner_hiv_test_date",
+              "questionOptions": {
+                "concept": "90bd8fec-3ff1-11e9-b210-d663bd873d93",
+                "rendering": "date"
+              },
+              "behaviours":[
+                {
+                  "intent":"*",
+                  "unspecified":"true",
+                  "hide":{
+                    "hideWhenExpression":"partner_hiv_test_done !== '1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
+                  },
+                  "validators": [
+                    {
+                      "type":"date",
+                      "allowFutureDates":"false"
+                    },
+                    {
+                      "type":"js_expression",
+                      "failsWhenExpression":"isDateBefore(myValue, '1980-01-01') || myValue >= today()"
+                    }
+                  ]
+                }
+              ]
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "label": "Next Appointment",
+      "sections": [
         {
           "label": "Follow Up",
           "isExpanded": "true",
@@ -778,6 +924,10 @@
                   {
                     "concept": "160036AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                     "label": "Transfer out"
+                  },
+                  {
+                    "concept": "54b96458-6585-4c4c-a5b1-b3ca7f1be351",
+                    "label": "Missing"
                   }
                 ]
               },
@@ -785,7 +935,6 @@
                 {
                   "intent":"*",
                   "required":"true",
-                  "unspecified":"true",
                   "hide":{
                     "hideWhenExpression":"false"
                   }
@@ -798,7 +947,8 @@
               "id": "transfer-out-to",
               "questionOptions": {
                 "concept": "159495AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                "rendering": "text"
+                "rendering": "encounter-location",
+                "locationTag": "8d4626ca-7abd-42ad-be48-56767bbcf272"
               },
               "behaviours":[
                 {
@@ -826,7 +976,7 @@
   "uuid":"xxxx",
   "referencedForms":[],
   "encounterType":"2549af50-75c8-4aeb-87ca-4bb2cef6c69a",
-  "postSubmissionAction": "PTrackerSubmissionAction",
+  "postSubmissionActions": ["PTrackerSubmissionAction", "ArtSubmissionAction"],
   "allowUnspecifiedAll":true
 }
 

@@ -2,7 +2,7 @@
     "name":"Mother - Postnatal Form",
     "pages":[
        {
-          "label":"Mother - Postnatal",
+          "label":"Visit Details",
           "sections":[
              {
                 "label":"PTracker ID Capture",
@@ -49,29 +49,116 @@
                         {
                           "intent":"*",
                           "required":"true",
-                          "unspecified":"true",
                           "hide":{
                             "hideWhenExpression":"false"
                           },
                           "validators":[
+                           {
+                              "type": "js_expression",
+                              "failsWhenExpression": "!/^[0-9]{5}[A-S]{1}[0-9]{6,8}$$/.test(myValue)",
+                              "message": "Invalid Ptracker number"
+                            }
 
                           ]
                         }
                       ]
                    }
                 ]
-             },
+             }
+            ]
+            },
+            {
+               "label": "HTS and ART",
+               "sections": [
              {
                 "label":"HIV Testing And ART Initiation",
                 "isExpanded":"true",
                 "questions":[
+                  {
+                     "label": "ANC HIV test status ",
+                     "type": "obs",
+                     "id": "testStatusAtANC",
+                     "questionOptions": {
+                       "concept": "164401AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                       "rendering": "fixed-value",
+                       "calculate": {
+                          "calculateExpression": "resolve(api.getLatestObs(patient.id, '164401AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', '2549af50-75c8-4aeb-87ca-4bb2cef6c69a'))?.valueCodeableConcept?.coding[0]?.code"
+                        }, 
+                       "answers": [
+                         {
+                           "concept": "6f041992-f0fd-4ec7-b7b6-c06b0f60bf3f",
+                           "label": "Tested for HIV during this visit"
+                         },
+                         {
+                           "concept": "8b8951a8-e8d6-40ca-ad70-89e8f8f71fa8",
+                           "label": "Previously known positive"
+                         },
+                         {
+                           "concept": "d18fa331-f158-47d0-b344-cf147c7125a4",
+                           "label": "Not tested for HIV during this visit"
+                         },
+                         {
+                           "concept": "54b96458-6585-4c4c-a5b1-b3ca7f1be351",
+                           "label": "Missing"
+                         }
+                       ]
+                     },
+                     "behaviours":[
+                       {
+                         "intent":"*",
+                         "required":"true",
+                         "hide":{
+                           "hideWhenExpression":"true"
+                         }
+                       }
+                     ]
+                   },
+                   {
+                     "label": "ANC HIV test result ",
+                     "type": "obs",
+                     "id": "ancHivTestResult",
+                     "questionOptions": {
+                       "concept": "159427AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                       "rendering": "fixed-field",
+                       "calculate":{
+                         "calculateExpression":"resolve(api.getLatestObs(patient.id, '159427AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', '2549af50-75c8-4aeb-87ca-4bb2cef6c69a'))?.valueCodeableConcept?.coding[0]?.code"
+                       },
+                       "answers": [
+                         {
+                           "concept": "138571AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                           "label": "Positive"
+                         },
+                         {
+                           "concept": "664AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                           "label": "Negative"
+                         },
+                         {
+                           "concept": "1067AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                           "label": "Unknown"
+                         },
+                         {
+                           "concept": "54b96458-6585-4c4c-a5b1-b3ca7f1be351",
+                           "label": "Missing"
+                         }
+                       ]
+                     },
+                     "behaviours":[
+                       {
+                         "intent":"*",
+                         "required":"true",
+                         "hide":{
+                           "hideWhenExpression":"true"
+                         }
+                       }
+                     ]
+                   },
                    {
                       "label":"HIV Test Status",
                       "type":"obs",
                       "id":"hiv-test",
                       "questionOptions":{
                          "concept":"164401AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                         "rendering":"radio",
+                         "rendering":"radio",                     
                          "answers":[
                             {
                                "concept":"6f041992-f0fd-4ec7-b7b6-c06b0f60bf3f",
@@ -95,9 +182,8 @@
                         {
                           "intent":"*",
                           "required":"true",
-                          "unspecified":"true",
                           "hide":{
-                            "hideWhenExpression":"false"
+                            "hideWhenExpression":"testStatusAtANC == '8b8951a8-e8d6-40ca-ad70-89e8f8f71fa8' || ancHivTestResult == '138571AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
                           },
                           "validators":[
 
@@ -135,7 +221,6 @@
                         {
                           "intent":"*",
                           "required":"true",
-                          "unspecified":"true",
                           "hide":{
                             "hideWhenExpression":"!includes('hiv-test','6f041992-f0fd-4ec7-b7b6-c06b0f60bf3f')"
                           },
@@ -179,7 +264,6 @@
                         {
                           "intent":"*",
                           "required":"true",
-                          "unspecified":"true",
                           "hide":{
                             "hideWhenExpression":"hiv-test-result !== '138571AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' && hiv-test !== '8b8951a8-e8d6-40ca-ad70-89e8f8f71fa8'"
                           },
@@ -279,7 +363,6 @@
                         {
                           "intent":"*",
                           "required":"true",
-                          "unspecified":"true",
                           "hide":{
                             "hideWhenExpression":"art-initiation !== '160119AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' && art-initiation !== '160120AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'"
                           },
@@ -345,7 +428,6 @@
                         {
                           "intent":"*",
                           "required":"true",
-                          "unspecified":"true",
                           "hide":{
                             "hideWhenExpression":"!includes('recent-viral-load','1065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')"
                           },
@@ -378,9 +460,14 @@
                       ]
                    }
                 ]
-             },
+             }
+            ]
+         },
+         {
+            "label": "Next Appointment",
+            "sections": [
              {
-                "label":"HIV Testing And ART Initiation",
+                "label":"Follow Up",
                 "isExpanded":"true",
                 "questions":[
                    {
@@ -442,7 +529,6 @@
                         {
                           "intent":"*",
                           "required":"true",
-                          "unspecified":"true",
                           "hide":{
                             "hideWhenExpression":"false"
                           },
@@ -514,5 +600,6 @@
     "uuid":"xxxx",
     "referencedForms":[],
     "encounterType":"269bcc7f-04f8-4ddc-883d-7a3a0d569aad",
+    "postSubmissionActions": ["ArtSubmissionAction"],
     "allowUnspecifiedAll":true
  }

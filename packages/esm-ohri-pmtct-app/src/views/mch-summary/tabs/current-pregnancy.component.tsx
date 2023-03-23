@@ -7,11 +7,11 @@ import {
   getObsFromEncounter,
   TileSummaryProps,
   fetchPatientRelationships,
-  familyItemProps,
   EncounterListColumn,
   EncounterList,
   basePath,
   getTotalANCVisits,
+  fetchPatientLastEncounter,
 } from '@ohri/openmrs-esm-ohri-commons-lib';
 import {
   antenatalEncounterType,
@@ -27,27 +27,48 @@ import {
   visitDate,
   mchEncounterType,
   mchVisitsTypes,
+  artInitiationConcept,
+  infantDeliveryGroupingConcept,
+  infantDateOfBirth,
+  infantPTrackerIdConcept,
+  infantStatusAtBirthConcept,
 } from '../../../constants';
 import moment from 'moment';
 import { moduleName } from '../../..';
 import { Link } from '@carbon/react';
 import { navigate } from '@openmrs/esm-framework';
-import { fetchPatientIdentifiers, getEstimatedDeliveryDate } from '../../../api/api';
+import { fetchMotherHIVStatus, fetchPatientIdentifiers, getEstimatedDeliveryDate } from '../../../api/api';
 
+interface pregnancyOutcomeProps {
+  id: string;
+  pTrackerId: string;
+  dateOfBirth: string;
+  infantStatus: string;
+}
+export interface familyItemProps {
+  id: string;
+  pTrackerId: string;
+  name: any;
+  relationship: string;
+  dateOfBirth: string;
+  hivStatus: string;
+}
 const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
   const { t } = useTranslation();
-  const currentPregnancyHeader = t('currentPregnancy', 'Current Pregnancy');
-  const arvTherapyHeader = t('artTherapy', 'ART Therapy');
+  const currentPregnancyHeader = t('recentPregnancy', 'Recent Pregnancy');
+  const arvTherapyHeader = t('art', 'ART');
   const appointmentsHeader = t('appointments', 'Appointments');
   const familyHeader = t('family', 'Family');
+  const pregnancyOutcomeHeader = t('pregnancyOutcome', 'Pregnancy Outcome');
   const previousVisitsTitle = t('previousVisitsSummary', 'Previous Visits');
   const [relatives, setRelatives] = useState([]);
   const [relativeToIdentifierMap, setRelativeToIdentifierMap] = useState([]);
+  const [pregnancyOutcomes, setPregnancyOutcomes] = useState([]);
 
   const headersFamily = [
     {
-      header: t('id', 'ID'),
-      key: 'id',
+      header: t('pTrackerId', 'PTracker ID'),
+      key: 'pTrackerId',
     },
     {
       header: t('name', 'Name'),
@@ -66,7 +87,22 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
       key: 'hivStatus',
     },
   ];
+  const headersPregnancyOutcome = [
+    {
+      header: t('pTrackerId', 'PTracker ID'),
+      key: 'pTrackerId',
+    },
+    {
+      header: t('dateOfBirth', 'Date of Birth'),
+      key: 'dateOfBirth',
+    },
+    {
+      header: t('infantStatus', 'Infant Status at Birth'),
+      key: 'infantStatus',
+    },
+  ];
   useEffect(() => {
+    getParentCurrentLabourAndDeliveryEncounter();
     getParentRelationships();
   }, []);
 
@@ -79,6 +115,21 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
       });
     }
     setRelatives(relationships);
+  }
+
+  async function getParentCurrentLabourAndDeliveryEncounter() {
+    const currentPregnancyANCEncounter = await fetchPatientLastEncounter(patientUuid, antenatalEncounterType);
+    const currentPregnancyLabourAndDeliveryEncounter = await fetchPatientLastEncounter(
+      patientUuid,
+      labourAndDeliveryEncounterType,
+    );
+    if (currentPregnancyLabourAndDeliveryEncounter.encounterDatetime > currentPregnancyANCEncounter.encounterDatetime) {
+      setPregnancyOutcomes(
+        currentPregnancyLabourAndDeliveryEncounter.obs.filter(
+          (obs) => obs.concept.uuid === infantDeliveryGroupingConcept,
+        ),
+      );
+    }
   }
   useEffect(() => {
     const relativeToPtrackerPromises = relatives.map((relative) => getChildPTracker(relative.personB.uuid));
@@ -110,7 +161,8 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
         </Link>
       );
       let relativeObject: familyItemProps = {
-        id: relativeToIdentifierMap.find((entry) => entry.patientId === relative.personB.uuid)?.pTrackerId,
+        id: relative.uuid,
+        pTrackerId: relativeToIdentifierMap.find((entry) => entry.patientId === relative.personB.uuid)?.pTrackerId,
         name: patientLink,
         relationship: relative.relationshipType.displayBIsToA,
         dateOfBirth: moment(relative.personB.birthdate).format('DD-MMM-YYYY'),
@@ -121,15 +173,35 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
     return items;
   }, [relatives, relativeToIdentifierMap]);
 
+  const childrenDetails: pregnancyOutcomeProps[] = useMemo(() => {
+    let items = [];
+    pregnancyOutcomes.forEach((child) => {
+      let infantStatusObs = child.groupMembers.find((member) => member.concept.uuid === infantStatusAtBirthConcept);
+      let childObject: pregnancyOutcomeProps = {
+        id: child.uuid,
+        pTrackerId: child.groupMembers.find((member) => member.concept.uuid === infantPTrackerIdConcept)?.value,
+        dateOfBirth: moment(
+          child.groupMembers.find((member) => member.concept.uuid === infantDateOfBirth)?.value,
+        ).format('DD-MMM-YYYY'),
+        infantStatus:
+          infantStatusObs.value?.names?.find((conceptName) => conceptName.conceptNameType === 'SHORT')?.name ||
+          infantStatusObs.value.name.name,
+      };
+      items.push(childObject);
+    });
+    return items;
+  }, [pregnancyOutcomes]);
+
   const currentPregnancyColumns: TileSummaryProps[] = useMemo(
     () => [
       {
         key: 'motherHIVStatus',
         header: t('motherHIVStatus', 'Mother HIV Status'),
-        encounters: [],
-        encounterUuids: [motherPostnatalEncounterType, labourAndDeliveryEncounterType, antenatalEncounterType],
-        getObsValue: (encounters) => {
-          return getObsFromMultipleEncounters(encounters);
+        encounterUuid: labourAndDeliveryEncounterType,
+        getObsValue: async (encounter) => {
+          const currentPTrackerId = getObsFromEncounter(encounter, pTrackerIdConcept);
+          const totalVisits = await fetchMotherHIVStatus(patientUuid, currentPTrackerId);
+          return totalVisits.rows.length ? totalVisits.rows[0].mother_hiv_status : '--';
         },
       },
       {
@@ -139,12 +211,16 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
         getObsValue: async (encounter) => {
           const currentPTrackerId = getObsFromEncounter(encounter, pTrackerIdConcept);
           const edd = await getEstimatedDeliveryDate(patientUuid, currentPTrackerId);
-          return edd ? edd?.rows[0]?.estimated_delivery_date : '---';
+          return edd.rows.length ? edd.rows[0].estimated_delivery_date : '---';
         },
         hasSummary: true,
         getSummaryObsValue: (encounter) => {
           let edd = getObsFromEncounter(encounter, eDDConcept, true);
-          return edd === '--' ? edd : `In ${calculateDateDifferenceInDate(edd)}`;
+          if (edd !== '--') {
+            const days = calculateDateDifferenceInDate(edd);
+            edd = edd > 0 ? `In ${days}` : '';
+          }
+          return edd;
         },
       },
       {
@@ -155,28 +231,9 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
           return getObsFromEncounter(encounter, motherStatusConcept);
         },
       },
-      {
-        key: 'pregancyOutcome',
-        header: t('pregancyOutcome', 'Pregnancy Outcome'),
-        encounterUuid: '--',
-        getObsValue: (encounter) => {
-          return '--';
-        },
-      },
     ],
     [],
   );
-
-  const getObsFromMultipleEncounters = (encounters: any) => {
-    let artInitiationDate;
-    artInitiationDate = getObsFromEncounter(encounters[0], artStartDate, true);
-    if (artInitiationDate === '--') {
-      artInitiationDate = getObsFromEncounter(encounters[1], artStartDate, true);
-    } else {
-      artInitiationDate = getObsFromEncounter(encounters[1], artStartDate, true);
-    }
-    return artInitiationDate;
-  };
 
   const arvTherapyColumns: TileSummaryProps[] = useMemo(
     () => [
@@ -186,7 +243,14 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
         encounters: [],
         encounterUuids: [motherPostnatalEncounterType, labourAndDeliveryEncounterType, antenatalEncounterType],
         getObsValue: (encounters) => {
-          return getObsFromMultipleEncounters(encounters);
+          let artInitiation;
+          artInitiation = getObsFromEncounter(encounters[0], artInitiationConcept);
+          if (artInitiation === '--') {
+            artInitiation = getObsFromEncounter(encounters[1], artInitiationConcept);
+          } else {
+            artInitiation = getObsFromEncounter(encounters[2], artInitiationConcept);
+          }
+          return artInitiation;
         },
       },
       {
@@ -195,7 +259,14 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
         encounters: [],
         encounterUuids: [motherPostnatalEncounterType, labourAndDeliveryEncounterType, antenatalEncounterType],
         getObsValue: (encounters) => {
-          return getObsFromMultipleEncounters(encounters);
+          let artInitiationDate;
+          artInitiationDate = getObsFromEncounter(encounters[0], artStartDate, true);
+          if (artInitiationDate === '--') {
+            artInitiationDate = getObsFromEncounter(encounters[1], artStartDate, true);
+          } else {
+            artInitiationDate = getObsFromEncounter(encounters[2], artStartDate, true);
+          }
+          return artInitiationDate;
         },
       },
     ],
@@ -214,7 +285,11 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
         hasSummary: true,
         getSummaryObsValue: (encounter) => {
           let nextVisitDate = getObsFromEncounter(encounter, nextVisitDateConcept, true);
-          return nextVisitDate === '--' ? nextVisitDate : `In ${calculateDateDifferenceInDate(nextVisitDate)}`;
+          if (nextVisitDate !== '--') {
+            const days = calculateDateDifferenceInDate(nextVisitDate);
+            nextVisitDate = nextVisitDate > 0 ? `In ${days}` : '';
+          }
+          return nextVisitDate;
         },
       },
       {
@@ -224,7 +299,7 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
         getObsValue: async (encounter) => {
           const currentPTrackerId = getObsFromEncounter(encounter, pTrackerIdConcept);
           const totalVisits = await getTotalANCVisits(patientUuid, currentPTrackerId);
-          return totalVisits.rows[0].total;
+          return totalVisits.rows.length ? totalVisits.rows[0].total : '0';
         },
       },
     ],
@@ -234,7 +309,7 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
   const calculateDateDifferenceInDate = (givenDate: string): string => {
     const dateDifference = new Date(givenDate).getTime() - new Date().getTime();
     const totalDays = Math.floor(dateDifference / (1000 * 3600 * 24));
-    return `${totalDays} days`;
+    return `${totalDays} day(s)`;
   };
 
   const columnsMotherPreviousVisit: EncounterListColumn[] = useMemo(
@@ -305,7 +380,7 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
   return (
     <div>
       <CardSummary patientUuid={patientUuid} headerTitle={currentPregnancyHeader} columns={currentPregnancyColumns} />
-      <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', height: '15rem' }}>
         <CardSummary
           patientUuid={patientUuid}
           headerTitle={arvTherapyHeader}
@@ -321,13 +396,26 @@ const CurrentPregnancy: React.FC<PatientChartProps> = ({ patientUuid }) => {
       </div>
 
       <ExpandableList
+        patientUuid={patientUuid}
+        headerTitle={pregnancyOutcomeHeader}
+        headers={headersPregnancyOutcome}
+        items={childrenDetails}
+        isActionable={true}
+        isStriped={true}
+        launchOptions={{
+          hideFormLauncher: true,
+          moduleName: '',
+          displayText: '',
+        }}
+      />
+
+      <ExpandableList
+        patientUuid={patientUuid}
         headerTitle={familyHeader}
         headers={headersFamily}
         items={parentRelationships}
         isActionable={true}
         isStriped={true}
-        encounterUuid={antenatalEncounterType}
-        patientUuid={patientUuid}
         launchOptions={{
           hideFormLauncher: true,
           moduleName: '',
