@@ -4,15 +4,11 @@ import { Add } from '@carbon/react/icons';
 import { useTranslation } from 'react-i18next';
 import { age, navigate } from '@openmrs/esm-framework';
 import { DataTableSkeleton, Pagination, OverflowMenu, Button } from '@carbon/react';
+// eslint-disable-next-line no-restricted-imports
 import { Launch } from '@carbon/icons-react';
 import { capitalize } from 'lodash-es';
 import moment from 'moment';
-import {
-  parseDate,
-  EthiopicCalendar,
-  toCalendar,
-  CalendarDate,
-} from "@internationalized/date";
+import { parseDate, EthiopicCalendar, toCalendar, CalendarDate } from '@internationalized/date';
 import {
   AddPatientToListOverflowMenuItem,
   EmptyState,
@@ -72,7 +68,7 @@ const PatientList: React.FC<PatientListProps> = () => {
         gender: capitalize(patient.resource.gender),
         age: age(patient.resource.birthDate),
         // last_visit: lastVisit ? moment(lastVisit).format('DD-MMM-YYYY') : '__',
-        last_visit: lastVisit ? gregToEth(lastVisit): '__',
+        last_visit: lastVisit ? gregToEth(lastVisit) : '__',
         link: (
           <Router>
             <Link style={{ textDecoration: 'inherit' }} to={getPatientURL(patient.resource.id)}>
@@ -151,22 +147,15 @@ const PatientList: React.FC<PatientListProps> = () => {
 export default PatientList;
 function gregToEth(gregdate: any) {
   gregdate = moment(gregdate).format('DD/MM/YYYY');
-  console.log(gregdate);
   if (!gregdate) return null;
-    let dmy = gregdate.split("/");
-    if (dmy.length == 3) {
-      let year = parseInt(dmy[2], 10);
-      let month = parseInt(dmy[0], 10);
-      let day = parseInt(dmy[1], 10);
-      let gregorianDate = new CalendarDate(year, month, day);
-      let ethiopianDate = toCalendar(gregorianDate, new EthiopicCalendar());
-      let finalDate =
-        ethiopianDate.year +
-        "/" +
-        ethiopianDate.month +
-        "/" +
-        ethiopianDate.day;
-      return finalDate;
-    } else return null;
-  }
-
+  let dmy = gregdate.split('/');
+  if (dmy.length == 3) {
+    let year = parseInt(dmy[2], 10);
+    let month = parseInt(dmy[0], 10);
+    let day = parseInt(dmy[1], 10);
+    let gregorianDate = new CalendarDate(year, month, day);
+    let ethiopianDate = toCalendar(gregorianDate, new EthiopicCalendar());
+    let finalDate = ethiopianDate.year + '-' + ethiopianDate.month + '-' + ethiopianDate.day;
+    return finalDate;
+  } else return null;
+}
